@@ -9,41 +9,42 @@ const { chromium } = require('playwright');
 
   try {
     console.log('🌐 Navigating to Admin Login...');
+    // CHANGE 1: Use 'domcontentloaded' instead of 'networkidle'
+    // Increase timeout to 60s because free servers are slow.
     await page.goto('https://testonejuvt.great-site.net/question1/admin-login', { 
-      waitUntil: 'networkidle' 
+      waitUntil: 'domcontentloaded',
+      timeout: 60000 
     });
 
-    // 1. Enter Email
     console.log('📧 Entering email...');
     const emailInput = page.locator('#email');
-    await emailInput.waitFor({ state: 'visible', timeout: 15000 });
+    // Wait for visibility instead of network idle
+    await emailInput.waitFor({ state: 'visible', timeout: 20000 });
     await emailInput.fill('lhasson@gmail.com');
 
-    // 2. Enter Password
     console.log('🔑 Entering password...');
     const passwordInput = page.locator('#password');
     await passwordInput.fill('Almaty');
 
-    // 3. Submit Login
-    console.log('🖱️ Clicking Login button...');
-    // We press Enter on the password field to submit the form
-    await passwordInput.press('Enter');
+    console.log('🖱️ Submitting Login...');
+    // CHANGE 2: Wait for navigation after the press
+    await Promise.all([
+        page.waitForNavigation({ waitUntil: 'domcontentloaded' }).catch(() => {}),
+        passwordInput.press('Enter')
+    ]);
 
-    // 4. Wait for redirection or login to process
-    console.log('⏳ Waiting for authentication...');
-    await page.waitForTimeout(5000); 
-
-    // 5. Navigate to Submissions page
     console.log('📂 Navigating to Submissions page...');
     await page.goto('https://testonejuvt.great-site.net/question1/submissions', { 
-      waitUntil: 'networkidle' 
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
     });
 
     console.log('✅ Success! Current URL:', page.url());
-    console.log('📋 Page Title:', await page.title());
 
   } catch (error) {
     console.error('❌ Script failed:', error.message);
+    // CRITICAL: Take a screenshot on failure to see if there's a "Checking your browser" page
+    await page.screenshot({ path: 'debug-failure.png' });
     process.exit(1);
   } finally {
     await browser.close();
